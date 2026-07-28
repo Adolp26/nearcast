@@ -25,4 +25,12 @@ func main() {
 
 	fmt.Println("Connection accepted from", conn.RemoteAddr())
 
-}
+	buffer := make([]byte, 1024)
+
+	n, err := conn.Read(buffer)
+	if err != nil {
+		fmt.Println("Error reading message:", err)
+		return
+	}
+
+	fmt.Println("Received message:", string(buffer[:n]))}
