@@ -1,8 +1,8 @@
 package main
 
-import
-(
+import (
 	"fmt"
+	"io"
 	"net"
 	"os"
 )
@@ -10,20 +10,34 @@ import
 func main() {
 	conn, err := net.Dial("tcp", "localhost:9000")
 	if err != nil {
-		fmt.Println("Error connecting to server:", err)
-		os.Exit(1)
+		fmt.Println("erro ao conectar:", err)
+		return
 	}
 	defer conn.Close()
 
-	fmt.Println("Connected to server")
-
-	mensagem := []byte("Hello, this is a test message!")
-
-	_, err = conn.Write(mensagem)
+	file, err := os.Open("test.txt")
 	if err != nil {
-		fmt.Println("Error sending message:", err)
-		os.Exit(1)
+		fmt.Println("Failed to open file:", err)
+		return
 	}
+	defer file.Close()
 
-	fmt.Println("Message sent successfully")
+	buffer := make([]byte, 1024)
+
+	for {
+		n, err := file.Read(buffer)
+
+		if n > 0 {
+			conn.Write(buffer[:n])
+		}
+
+		if err == io.EOF {
+			fmt.Println("File sent successfully")
+			break
+		}
+		if err != nil {
+			fmt.Println("Failed to read file:", err)
+			return
+		}
+	}
 }

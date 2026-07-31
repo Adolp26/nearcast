@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
+	"os"
 )
 
 func main() {
@@ -25,12 +27,16 @@ func main() {
 
 	fmt.Println("Connection accepted from", conn.RemoteAddr())
 
-	buffer := make([]byte, 1024)
-
-	n, err := conn.Read(buffer)
+	file, err := os.Create("received.txt")
 	if err != nil {
-		fmt.Println("Error reading message:", err)
+		fmt.Println("Error creating file:", err)
 		return
 	}
+	defer file.Close()
 
-	fmt.Println("Received message:", string(buffer[:n]))}
+	_, err = io.Copy(file, conn)
+	if err != nil {
+		fmt.Println("Error copying data to file:", err)
+		return
+	}
+}
