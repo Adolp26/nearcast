@@ -7,8 +7,24 @@ import (
 	"os"
 )
 
-func main() {
+func handleConnection(conn net.Conn, id int) {
+	defer conn.Close()
 
+	nomeArquivo := fmt.Sprintf("received_%d.txt", id)
+
+	file, err := os.Create(nomeArquivo)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return
+	}
+	defer file.Close()
+
+	io.Copy(file, conn)
+
+	fmt.Println("Transfer finished for connection", id)
+}
+
+func main() {
 	listener, err := net.Listen("tcp", ":9000")
 	if err != nil {
 		fmt.Println("Error starting TCP server:", err)
@@ -18,25 +34,17 @@ func main() {
 
 	fmt.Println("TCP server listening on port 9000")
 
-	conn, err := listener.Accept()
-	if err != nil {
-		fmt.Println("Error accepting connection:", err)
-		return
-	}
-	defer conn.Close()
+	id := 0
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			fmt.Println("Error accepting connection:", err)
+			continue
+		}
 
-	fmt.Println("Connection accepted from", conn.RemoteAddr())
+		fmt.Println("Connection accepted from", conn.RemoteAddr())
 
-	file, err := os.Create("received.txt")
-	if err != nil {
-		fmt.Println("Error creating file:", err)
-		return
-	}
-	defer file.Close()
-
-	_, err = io.Copy(file, conn)
-	if err != nil {
-		fmt.Println("Error copying data to file:", err)
-		return
+		id++
+		go handleConnection(conn, id) // Call handleConnection with a unique ID
 	}
 }
