@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
@@ -21,6 +22,18 @@ func main() {
 		return
 	}
 	defer file.Close()
+
+	nomeArquivo := "test.txt"
+
+	nomeArquivoBytes := []byte(nomeArquivo)
+
+	tamanhoBuf := make([]byte, 4)
+
+	binary.BigEndian.PutUint32(tamanhoBuf, uint32(len(nomeArquivoBytes)))
+
+	conn.Write(tamanhoBuf)
+
+	conn.Write(nomeArquivoBytes)
 
 	buffer := make([]byte, 1024)
 

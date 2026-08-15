@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
@@ -10,7 +11,27 @@ import (
 func handleConnection(conn net.Conn, id int) {
 	defer conn.Close()
 
-	nomeArquivo := fmt.Sprintf("received_%d.txt", id)
+	tamanhoBuf := make([]byte, 4)
+
+	_, err := io.ReadFull(conn, tamanhoBuf)
+	if err != nil {
+		fmt.Println("Error reading file size:", err)
+		return
+	}
+
+	tamanhoArquivo := binary.BigEndian.Uint32(tamanhoBuf)
+
+	nomeBuf := make([]byte, tamanhoArquivo)
+
+	_, err = io.ReadFull(conn, nomeBuf)
+	if err != nil {
+		fmt.Println("Error reading file name:", err)
+		return
+	}
+
+	nomeArquivo := string(nomeBuf)
+
+	fmt.Println("Receiving file:", nomeArquivo)
 
 	file, err := os.Create(nomeArquivo)
 	if err != nil {
