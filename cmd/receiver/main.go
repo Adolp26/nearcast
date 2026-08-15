@@ -45,6 +45,6 @@ func main() {
 		fmt.Println("Connection accepted from", conn.RemoteAddr())
 
 		id++
-		go handleConnection(conn, id) // Call handleConnection with a unique ID
+		go handleConnection(conn, id)
 	}
 }
