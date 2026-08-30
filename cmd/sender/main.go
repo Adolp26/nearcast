@@ -23,17 +23,28 @@ func main() {
 	}
 	defer file.Close()
 
+	info, err := file.Stat()
+	if err != nil {
+		fmt.Println("Failed to get file info:", err)
+		return
+	}
+
+	tamanhoArquivo := info.Size()
+
 	nomeArquivo := "test.txt"
 
 	nomeArquivoBytes := []byte(nomeArquivo)
 
 	tamanhoBuf := make([]byte, 4)
 
+	tamanhoArquivoBuf := make([]byte, 4)
+
 	binary.BigEndian.PutUint32(tamanhoBuf, uint32(len(nomeArquivoBytes)))
+	binary.BigEndian.PutUint32(tamanhoArquivoBuf, uint32(tamanhoArquivo))
 
 	conn.Write(tamanhoBuf)
-
 	conn.Write(nomeArquivoBytes)
+	conn.Write(tamanhoArquivoBuf)
 
 	buffer := make([]byte, 1024)
 

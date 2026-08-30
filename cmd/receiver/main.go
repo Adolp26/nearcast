@@ -19,9 +19,9 @@ func handleConnection(conn net.Conn, id int) {
 		return
 	}
 
-	tamanhoArquivo := binary.BigEndian.Uint32(tamanhoBuf)
+	tamanhoNome := binary.BigEndian.Uint32(tamanhoBuf)
 
-	nomeBuf := make([]byte, tamanhoArquivo)
+	nomeBuf := make([]byte, tamanhoNome)
 
 	_, err = io.ReadFull(conn, nomeBuf)
 	if err != nil {
@@ -33,6 +33,15 @@ func handleConnection(conn net.Conn, id int) {
 
 	fmt.Println("Receiving file:", nomeArquivo)
 
+	tamanhoArquivoBuf := make([]byte, 4)
+	_, err = io.ReadFull(conn, tamanhoArquivoBuf)
+	if err != nil {
+		fmt.Println("Error reading file size:", err)
+		return
+	}
+
+	tamanhoArquivo := binary.BigEndian.Uint32(tamanhoArquivoBuf)
+
 	file, err := os.Create(nomeArquivo)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
@@ -40,8 +49,11 @@ func handleConnection(conn net.Conn, id int) {
 	}
 	defer file.Close()
 
-	io.Copy(file, conn)
-
+	_, err = io.CopyN(file, conn, int64(tamanhoArquivo))
+	if err != nil {
+		fmt.Println("Error receiving file:", err)
+		return
+	}
 	fmt.Println("Transfer finished for connection", id)
 }
 
