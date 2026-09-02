@@ -1,22 +1,41 @@
-package main
+package cli
 
 import (
 	"bytes"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"os"
+	"mime/multipart"
+
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	err := sendFile("test.txt")
-	if err != nil {
-		fmt.Println("Error sending file:", err)
-	}
+
+
+
+var sendCmd = &cobra.Command{
+	Use:   "send [arquivo]",
+	Short: "Send a file to a peer",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		filePath := args[0]
+		err := sendFile(filePath)
+		if err != nil {
+			fmt.Println("Error sending file:", err)
+			os.Exit(1)
+		}
+	},
 }
 
+
+func init() {
+	rootCmd.AddCommand(sendCmd)
+}
+
+
 func sendFile(filePath string) error {
+
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
@@ -48,7 +67,7 @@ func sendFile(filePath string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to upload file: %s", resp.StatusCode)
+		return fmt.Errorf("error sending file: %s", resp.Status)
 	}
 
 	return nil
