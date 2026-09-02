@@ -1,67 +1,55 @@
 package main
 
 import (
-	"encoding/binary"
+	"bytes"
 	"fmt"
 	"io"
-	"net"
+	"mime/multipart"
+	"net/http"
 	"os"
 )
 
 func main() {
-	conn, err := net.Dial("tcp", "localhost:9000")
+	err := sendFile("test.txt")
 	if err != nil {
-		fmt.Println("erro ao conectar:", err)
-		return
+		fmt.Println("Error sending file:", err)
 	}
-	defer conn.Close()
+}
 
-	file, err := os.Open("test.txt")
+func sendFile(filePath string) error {
+	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println("Failed to open file:", err)
-		return
+		return err
 	}
 	defer file.Close()
 
-	info, err := file.Stat()
+	var corpo bytes.Buffer
+	writer := multipart.NewWriter(&corpo)
+
+	part, err := writer.CreateFormFile("file", "file.txt")
 	if err != nil {
-		fmt.Println("Failed to get file info:", err)
-		return
+		return err
 	}
 
-	tamanhoArquivo := info.Size()
-
-	nomeArquivo := "test.txt"
-
-	nomeArquivoBytes := []byte(nomeArquivo)
-
-	tamanhoBuf := make([]byte, 4)
-
-	tamanhoArquivoBuf := make([]byte, 4)
-
-	binary.BigEndian.PutUint32(tamanhoBuf, uint32(len(nomeArquivoBytes)))
-	binary.BigEndian.PutUint32(tamanhoArquivoBuf, uint32(tamanhoArquivo))
-
-	conn.Write(tamanhoBuf)
-	conn.Write(nomeArquivoBytes)
-	conn.Write(tamanhoArquivoBuf)
-
-	buffer := make([]byte, 1024)
-
-	for {
-		n, err := file.Read(buffer)
-
-		if n > 0 {
-			conn.Write(buffer[:n])
-		}
-
-		if err == io.EOF {
-			fmt.Println("File sent successfully")
-			break
-		}
-		if err != nil {
-			fmt.Println("Failed to read file:", err)
-			return
-		}
+	_, err = io.Copy(part, file)
+	if err != nil {
+		return err
 	}
+
+	err = writer.Close()
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post("http://localhost:9000/upload", writer.FormDataContentType(), &corpo)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to upload file: %s", resp.StatusCode)
+	}
+
+	return nil
 }
